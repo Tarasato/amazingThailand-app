@@ -12,6 +12,7 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import ThaiBG from './../assets/BG.png';//พื้นหลัง
 import { useNavigate } from "react-router-dom";
+import NotificationPopup from './NotificationPopup';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API;
@@ -20,6 +21,7 @@ function LoginUI() {
   const [userEmail, setUserEmail] = useState('');
   const [userPassword, setUserPassword] = useState('');
   const navigate = useNavigate();
+  const [showNotification, setShowNotification] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -28,35 +30,43 @@ function LoginUI() {
   };
   const handleLoginClick = async (e) => {
     e.preventDefault();
-    // Validate UI
-    if (userEmail.length == 0) {
+  
+    // ตรวจสอบการกรอกข้อมูล
+    if (userEmail.length === 0) {
       alert("กรุณาป้อนอีเมลด้วย");
       return;
-    } else if (userPassword.length == 0) {
+    } else if (userPassword.length === 0) {
       alert("กรุณาป้อนรหัสผ่านด้วย");
       return;
     } else {
-      //send data to API and go to MyTravel.jsx("/mytravel") GET
       try {
         const response = await axios.get(
           `${API_URL}/user/${userEmail}/${userPassword}`
         );
-        if (response.status == 200) {
-          //get data Traveller and save in memory
+  
+        // ตรวจสอบการตอบสนองจากเซิร์ฟเวอร์
+        if (response.status === 200) {
+          // หากการเข้าสู่ระบบสำเร็จ
           localStorage.setItem("user", JSON.stringify(response.data["data"]));
-          console.log(localStorage.getItem("user"));  // ตรวจสอบข้อมูลที่เก็บไว้ใน localStorage
           navigate("/");
-
-        } else if (response.status == 404) {
+        } else if (response.status === 401) {
+          // หากสถานะเป็น 401 (Unauthorized), แสดงข้อความที่กำหนด
           alert("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
         } else {
           alert("เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
         }
       } catch (error) {
-        alert("เกิดข้อผิดพลาด: " + error);
+        // จัดการข้อผิดพลาดที่เกิดขึ้น
+        if (error.response && error.response.status === 401) {
+          alert("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+        } else {
+          alert("เกิดข้อผิดพลาด: " + error.message);
+        }
       }
     }
   };
+  
+  
   return (
     <>
       <CssBaseline />
@@ -97,7 +107,7 @@ function LoginUI() {
     variant="contained"
     onClick={() => navigate('/')} // หรือ path ที่ต้องการให้ไปเมื่อคลิก
     sx={{
-      backgroundColor: '#0B3C71',
+      backgroundColor: '#123458',
       color: 'white',
       borderRadius: '30px',
       padding: '10px 20px',
@@ -105,7 +115,7 @@ function LoginUI() {
       fontWeight: 'bold',
       boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
       '&:hover': {
-        backgroundColor: '#0A2E5D',
+        backgroundColor: '#1a6d92',
         boxShadow: '0 6px 12px rgba(0,0,0,0.3)'
       }
     }}
@@ -203,7 +213,9 @@ function LoginUI() {
                       <IconButton
                         onClick={handleTogglePassword}
                         edge="end"
-                        sx={{ color: '#0B3C71', mr: 0.5 }}
+                        sx={{ color: '#123458', mr: 0.5,'&:hover': {
+                  color: '#1a6d92',
+                  } }}
                       >
                         {showPassword ? <Visibility /> : <VisibilityOff />}
                       </IconButton>
@@ -225,10 +237,10 @@ function LoginUI() {
                 mt: 3,
                 fontWeight: 'bold',
                 fontSize: '20px',
-                backgroundColor: '#0B3C71',
+                backgroundColor: '#123458',
                 borderRadius: '30px',
                 '&:hover': {
-                  backgroundColor: '#0A2E5D',
+                  backgroundColor: '#1a6d92',
                 }
               }}
             >
@@ -242,11 +254,14 @@ function LoginUI() {
                 onClick={() => navigate('/register')}
                 sx={{
                   fontWeight: 'bold',
-                  color: '#0B3C71',
+                  color: '#123458',
                   textTransform: 'none',
                   fontSize: '18px',
                   p: 0,
                   minWidth: 0,
+                  '&:hover': {
+                  color: '#1a6d92',
+                  }
                 }}
               >
                 สมัครสมาชิก

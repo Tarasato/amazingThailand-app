@@ -18,11 +18,13 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomeUI />} />
+          <Route path="/home" element={<HomeUI />} />
           <Route path="/login" element={<LoginUI />} />
           <Route path="/register" element={<RegisterUI />} />
           <Route path="/myprofile" element={<MyProfileUI />} />
           <Route path="/editmyprofile" element={<EditMyProfileUI />} />
           <Route path="/post" element={<PostUI />} />
+          <Route path="/post/:placeId" element={<PostUI />} />
           <Route path="/addpost" element={<AddPostUI />} />
           <Route path="/editpost" element={<EditPostUI />} />
         </Routes>

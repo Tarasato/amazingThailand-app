@@ -14,12 +14,14 @@ import BG from './../assets/BG.png';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
 import axios from 'axios';
+import NotificationPopup from './NotificationPopup';
 
 const API_URL = import.meta.env.VITE_API;
 
 function RegisterUI() {
   const navigate = useNavigate();
   const fileInputRef = useRef(); // <- สำคัญ
+  const [showNotification, setShowNotification] = useState(false);
 
 
   const [userImage, setUserImage] = useState(null);
@@ -166,7 +168,7 @@ function RegisterUI() {
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           ) : (
-            <PersonAddAltIcon sx={{ fontSize: 350, color: '#999' }} />
+            <PersonAddAltIcon sx={{ fontSize: 350, color: '#999',  }} />
           )}
         </Box>
 
@@ -185,8 +187,8 @@ function RegisterUI() {
               height: 700,
               backgroundColor: '#f1efec',
               borderRadius: 10,
-              p: { xs: 3, sm: 6 },
-              width: 550,
+              p: { xs: 3, sm: 5 },
+              width: 570,
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
               marginLeft: 'auto', // Helps with right alignment
             }}
@@ -214,7 +216,7 @@ function RegisterUI() {
                   variant="subtitle1"
                   sx={{
                     fontWeight: '500',
-                    marginBottom: '4px',
+                    marginBottom: '3px',
                     color: '#030303'
                   }}
                 >
@@ -248,7 +250,7 @@ function RegisterUI() {
                   variant="subtitle1"
                   sx={{
                     fontWeight: '500',
-                    marginBottom: '4px',
+                    marginBottom: '3px',
                     color: '#030303'
                   }}
                 >
@@ -282,7 +284,7 @@ function RegisterUI() {
                   type={showPassword ? 'text' : 'password'}
                   sx={{
                     fontWeight: '500',
-                    marginBottom: '4px',
+                    marginBottom: '3px',
                     color: '#030303'
                   }}
                 >
@@ -310,7 +312,10 @@ function RegisterUI() {
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        <IconButton onClick={handleTogglePassword} edge="end">
+                        <IconButton onClick={handleTogglePassword} edge="end"
+                        sx={{ color: '#123458', mr: 0.5,'&:hover': {
+                          color: '#1a6d92',
+                          } }}>
                           {showPassword ? <Visibility /> : <VisibilityOff />}
                         </IconButton>
                       </InputAdornment>
@@ -325,7 +330,7 @@ function RegisterUI() {
                   variant="subtitle1"
                   sx={{
                     fontWeight: '500',
-                    marginBottom: '4px',
+                    marginBottom: '3px',
                     color: '#030303'
                   }}
                 >
@@ -353,7 +358,10 @@ function RegisterUI() {
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        <IconButton onClick={handleToggleConfirmPassword} edge="end">
+                        <IconButton onClick={handleToggleConfirmPassword} edge="end"
+                        sx={{ color: '#123458', mr: 0.5,'&:hover': {
+                          color: '#1a6d92',
+                          } }}>
                           {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
                         </IconButton>
                       </InputAdornment>
@@ -374,7 +382,7 @@ function RegisterUI() {
                   fontWeight: 'bold',
                   backgroundColor: '#123458',
                   '&:hover': {
-                    backgroundColor: '#303f9f',
+                    backgroundColor: '#1a6d92',
                   },
                   borderRadius: '26px',
                 }}
@@ -383,7 +391,7 @@ function RegisterUI() {
               </Button>
 
               {/* Register Link */}
-              <Typography variant="body2" sx={{ mt: 2, color: '#000000' }}>
+              <Typography variant="body2" sx={{ mt: 0, color: '#000000' }}>
                 เป็นสมาชิกอยู่แล้ว?{' '}
                 <Button
                   onClick={() => navigate('/login')}
@@ -391,10 +399,13 @@ function RegisterUI() {
                   size="small"
                   sx={{
                     fontWeight: 'bold',
-                    color: '#42a5f4',
+                    color: '#123458',
                     textTransform: 'none',
                     p: 0,
-                    minWidth: 0
+                    minWidth: 0,
+                    '&:hover': {
+                  color: '#1a6d92',
+                  }
                   }}
                 >
                   เข้าสู่ระบบ

@@ -1,4 +1,4 @@
-import React from 'react';
+import { React, useState, useEffect, useRef } from 'react';
 import { useNavigate } from "react-router-dom";
 import {
   AppBar,
@@ -13,53 +13,157 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import BG from './../assets/BG.png';
 import Profile from './../assets/logo.png';
+import NotificationPopup from './NotificationPopup';
+import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API;
 
 function AddPostUI() {
   const navigate = useNavigate();
+  const [userName, setUserName] = useState('');
+  const [userImage, setUserImage] = useState('');
+  const [placeImage, setPlaceImage] = useState(null);
+  const [placeName, setPlaceName] = useState("");
+  const [showNotification, setShowNotification] = useState(false);
+
+  const [AvatarHover, setAvatarHover] = useState(false);
+  const [LogoutHover, setLogoutHover] = useState(false);
+
+
+  const fileInputRef = useRef(null);
+
+  const handleBoxClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click(); // สั่งให้ input ทำงาน
+    }
+  };
+  // เมื่อเลือกไฟล์
+  const handleSelectFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPlaceImage(file);
+      console.log('Selected file:', file);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!placeName || !placeImage) {
+      alert("กรุณากรอกชื่อสถานที่และเลือกรูปภาพ");
+      return;
+    }
+
+    // Create form data to send to the backend
+    const formData = new FormData();
+    formData.append("userId", JSON.parse(localStorage.getItem("user")).userId);
+    formData.append("placeName", placeName);
+    formData.append("placeImage", placeImage);
+
+    try {
+      // Use axios to send the form da
+      const response = await axios.post(`${API_URL}/place`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+
+      if (response.status === 201) {
+        alert("โพสต์ถูกสร้างเรียบร้อยแล้ว");
+        navigate("/post");  // Redirect to posts page or wherever you want
+      } else {
+        alert("เกิดข้อผิดพลาดในการสร้างโพสต์");
+      }
+    } catch (error) {
+      console.error("Error creating post:", error);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    }
+  };
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user) {
+      setUserName(user.userName);
+      setUserImage(user.userImage);
+    }
+  }, []);
 
   return (
     <>
       <CssBaseline />
-      {/* ================= AppBar ================= */}
+      {/* =========================== AppBar ======================== */}
       <Box sx={{ flexGrow: 1 }}>
-        <AppBar position="static" sx={{ backgroundColor: '#123458', boxShadow: 'none' }}>
-          <Toolbar>
-            <IconButton size="large" edge="start" color="inherit" sx={{ mr: 1 }}>
+        <AppBar position="static" sx={{ backgroundColor: '#123458', boxShadow: 'none', }}>
+          <Toolbar sx={{ width: "100%" }}>
+            {/* logo button */}
+            <IconButton
+              size="large"
+              edge="start"
+              color="inherit"
+              aria-label="menu"
+              sx={{ mr: 1 }}
+              onClick={() => {
+                navigate("/");
+              }}
+            >
               <img src='logo.png' width={40} alt="logo" />
             </IconButton>
-            <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-              Amazing Thailand
-            </Typography>
-            <TextField
-              size="small"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '26px',
-                  backgroundColor: 'white',
-                },
-                width: '40%',
-                marginLeft: 5,
-                marginRight: 1,
-              }}
-            />
-            <IconButton sx={{ border: '1px solid white' }}>
-              <SearchIcon sx={{ color: 'white' }} />
-            </IconButton>
-            <Box sx={{ flexGrow: 1 }} />
-            <Typography sx={{ color: 'white', fontWeight: 'bold', marginRight: 2 }}>
-              สมฤทัย
-            </Typography>
-            <IconButton sx={{ backgroundColor: 'white', mr: 2 }}>
-              <img src={Profile} width={24} />
-            </IconButton>
-            <Button color="inherit" onClick={() => navigate("/login")}>
-              ออกจากระบบ
+            <Button onClick={() => {
+
+              navigate("/");
+            }}>
+              <Typography variant="h6" component="div" sx={{ color: 'white' }}>
+                Amazing Thailand
+              </Typography>
             </Button>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
+              {/* Username */}
+              {userName ? (
+                <>
+                  <Typography variant="h7" component="div" sx={{ color: 'white' }}>
+                    {userName}
+                  </Typography>
+                  {/* Avatar */}
+                  <IconButton
+                    onClick={() => navigate("/myprofile")}
+                    onMouseEnter={() => setAvatarHover(true)}
+                    onMouseLeave={() => setAvatarHover(false)}
+
+                  ><img
+                      src={userImage ? userImage : Profile}
+                      alt="user"
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+
+                        border: AvatarHover ? '2px solid #1a6d92' : 'none',
+                      }}
+                    /></IconButton>
+
+                  <Button
+                    color="inherit"
+                    sx={{ border: LogoutHover ? '2px solid #1a6d92' : 'none' }}
+                    onClick={() => {
+                      localStorage.removeItem("user");
+                      navigate("/login");
+                    }}
+                    onMouseEnter={() => setLogoutHover(true)}
+                    onMouseLeave={() => setLogoutHover(false)}
+
+                  >
+                    ออกจากระบบ
+                  </Button>
+                </>
+              ) : (
+                <Button color="inherit" sx={{ marginLeft: 'auto' }} onClick={() => navigate("/login")}>
+                  เข้าสู่ระบบ
+                </Button>
+              )}
+            </Box>
           </Toolbar>
         </AppBar>
-      </Box>
+      </Box >
 
       {/* ================ Background & Form ================ */}
       {/* Background with Thai pattern overlay */}
@@ -91,7 +195,7 @@ function AddPostUI() {
 
       <Box
         width="100%"
-        height="100vh"
+        height="100%"
         display="flex"
         flexDirection="column"
         alignItems="center"
@@ -126,10 +230,34 @@ function AddPostUI() {
               alignItems: "center",
               display: "flex",
               textAlign: "center",
+              cursor: 'pointer',
+              overflow: 'hidden',
             }}
+            onClick={handleBoxClick}
           >
-            <Typography sx={{ fontSize: 300 }}>+</Typography>
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              ref={fileInputRef}
+              onChange={handleSelectFileChange}
+            />
+            {placeImage ? (
+              <img
+                src={URL.createObjectURL(placeImage)}
+                alt="Selected"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: '20px',
+                }}
+              />
+            ) : (
+              <Typography sx={{ fontSize: 300, color: '#ccc' }}>+</Typography>
+            )}
           </Box>
+
 
           {/* ด้านขวา (ฟอร์มกรอกข้อมูล) */}
           <Box
@@ -143,6 +271,9 @@ function AddPostUI() {
           >
             <Typography variant="h6">ชื่อสถานที่</Typography>
             <TextField
+              value={placeName}
+              onChange={(e) => setPlaceName(e.target.value)}
+
               fullWidth
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -154,7 +285,7 @@ function AddPostUI() {
               }}
             />
             <Button
-
+              onClick={handleSubmit}
               fullWidth
               variant="contained"
               size="large"
@@ -163,10 +294,10 @@ function AddPostUI() {
                 mt: 3,
                 fontWeight: 'bold',
                 fontSize: '20px',
-                backgroundColor: '#0B3C71',
+                backgroundColor: '#123458',
                 borderRadius: '30px',
                 '&:hover': {
-                  backgroundColor: '#0A2E5D',
+                  backgroundColor: '#1a6d92',
                 }
               }}
             >

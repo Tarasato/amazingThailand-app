@@ -13,12 +13,14 @@ import {
 import { useNavigate } from "react-router-dom";
 import SearchIcon from '@mui/icons-material/Search';
 import BG from './../assets/BG.png'; //background
+import NotificationPopup from './NotificationPopup';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 
 const API_URL = import.meta.env.VITE_API;
 
 function EditPostUI() {
   const navigate = useNavigate();
+  const [showNotification, setShowNotification] = useState(false);
 
   const userId = JSON.parse(localStorage.getItem("user")).userId;
   const placeId = JSON.parse(localStorage.getItem("place")).placeId;
