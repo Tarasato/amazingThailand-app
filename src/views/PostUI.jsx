@@ -9,18 +9,25 @@ import {
   IconButton,
   TextField,
   CssBaseline,
+  Menu,
+  MenuItem,
+  Icon,
+  Divider,
 } from '@mui/material';
 import axios from 'axios';
 import { useNavigate, useParams } from "react-router-dom";
 import BG from './../assets/BG.png'; // background
 import logo from '../assets/logo.png';
 import Profile from '../assets/profile.png';
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import MoreHorizOutlinedIcon from '@mui/icons-material/MoreHorizOutlined';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+
 
 const API_URL = import.meta.env.VITE_API;
 
 function PostUI() {
   const navigate = useNavigate();
-  const [showNotification, setShowNotification] = useState(false);
 
   const [userName, setUserName] = useState('');
   const [userPlaceName, setUserPlaceName] = useState('');
@@ -30,26 +37,37 @@ function PostUI() {
   const [userPlaceImage, setUserPlaceImage] = useState('');
   const { placeId } = useParams();
   const [placeName, setPlaceName] = useState('');
+  const [newPlaceName, setNewPlaceName] = useState('');
+
   const [placeImage, setPlaceImage] = useState('');
   const [newPlaceImage, setNewPlaceImage] = useState(null);
   const [createdAt, setCreatedAt] = useState('');
   const [comments, setComments] = useState([]);
   const [comment, setComment] = useState('');
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [editCommentId, setEditCommentId] = useState(null);
+
+  const [postEditmode, setPostEditmode] = useState(false);
+
+  const [openMenu1Id, setOpenMenu1Id] = useState(null);
 
   const [AvatarHover, setAvatarHover] = useState(false);
   const [LogoutHover, setLogoutHover] = useState(false);
 
   const fileInputRef = useRef(null);
+  // Post Menu===========================
+  const [anchorPost, setAnchorPost] = useState(null);
+  const open1 = Boolean(anchorPost);
 
-  const handleBoxClick = () => {
-    if (userId != userPlaceId) {
-      return;
+  const handleImageBoxClick = () => {
+    if (!postEditmode) {
+      return
     }
     if (fileInputRef.current) {
-      fileInputRef.current.click();
+      fileInputRef.current.click(); // สั่งให้ input ทำงาน
     }
   };
-
+  // เมื่อเลือกไฟล์
   const handleSelectFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -58,35 +76,126 @@ function PostUI() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!placeImage) {
-      alert("กรุณาเลือกรูปภาพ");
-      return;
-    } else if (!placeName) {
-      alert("กรุณากรอกชื่อสถานที่");
-      return;
-    }
+  const handlePostClick = (event, id) => {
+    setAnchorPost(event.currentTarget);
+    setOpenMenu1Id(id);
+  };
 
-    const formData = new FormData();
-    formData.append("userId", JSON.parse(localStorage.getItem("user")).userId);
-    formData.append("placeName", placeName);
-    newPlaceImage ? formData.append("placeImage", newPlaceImage) : null;
+  const handlePostClose = () => {
+    setAnchorPost(null);
+    setOpenMenu1Id(null);
+  };
+  //แก้ไขโพสต์
+  const handleEditPost = (placeId, placeImage, placeName) => {
+    setPostEditmode(true);
+    setPlaceImage(placeImage);  // ดึงข้อความคอมเมนต์มาแสดงในช่องกรอกความคิดเห็น
+    setNewPlaceName(placeName);  // ดึงข้อความคอมเมนต์มาแสดงในช่องกรอกความคิดเห็น
+    setOpenMenu1Id(null);  // ปิดเมนู
+    // setEditPlaceId(placeId);  // ตั้งค่ารหัสความคิดเห็นที่กำลังจะแก้ไข
+  };
 
+  const handleEditPostSubmit = async () => {
     try {
-      const response = await axios.put(`${API_URL}/place`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const formData = new FormData();
+      formData.append("placeId", placeId);
+      formData.append("placeName", newPlaceName);
+      newPlaceImage ? formData.append("placeImage", newPlaceImage) : null; // ส่งไฟล์ภาพ
+      formData.append("userId", userId);
+
+      const response = await axios.put(`${API_URL}/place/${placeId}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
-      if (response.status === 201) {
-        alert("โพสต์ถูกสร้างเรียบร้อยแล้ว");
-        navigate("/post");
+      if (response.status === 200) {
+        alert("แก้ไขโพสต์สําเร็จ");
+
+        setPostEditmode(false); // ปิดโหมดแก้ไข
+        (newPlaceImage) ? setPlaceImage(newPlaceImage) : setPlaceImage(placeImage); // ล้างรูปภาพใหม่
+        setPlaceName(newPlaceName); // ตั้งชื่อสถานที่ใหม่
       } else {
-        alert("เกิดข้อผิดพลาดในการสร้างโพสต์");
+        console.error("Failed to edit post:", response);
+        alert("เกิดข้อผิดพลาดในการแก้ไขโพสต์");
       }
     } catch (error) {
-      console.error("Error creating post:", error);
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      console.error("Error editing post:", error);
+      if (error.response) {
+        alert("แก้ไขโพสต์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      } else {
+        alert("เกิดข้อผิดพลาดในการแก้ไขโพสต์ กรุณาลองใหม่อีกครั้ง");
+        console.error("Error response:", error.response.data); // แสดงข้อมูลข้อผิดพลาดจากเซิร์ฟเวอร์
+        console.error("Error status:", error.response.status); // แสดงสถานะ HTTP
+        console.error("Error headers:", error.response.headers); // แสดง header ของการตอบกลับ
+      }
     }
+
+  }
+  const handleDeletePost = async (placeId) => {
+    handlePostClose();
+
+    const confirmDelete = window.confirm("คุณแน่ใจหรือว่าต้องการลบโพสต์นี้?");
+    if (!confirmDelete) {
+      return; // ถ้ายกเลิกการลบ
+    }
+
+    try {
+      const response = await axios.delete(`${API_URL}/place/${placeId}`);
+      if (response.status === 200) {
+        alert("ลบโพสต์สําเร็จ");
+        navigate('/');
+      } else {
+        console.error("Failed to delete comment:", response);
+        alert("เกิดข้อผิดพลาดในการลบโพสต์สําเร็จ");
+      }
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      alert("ลบโพสต์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    }
+  };
+
+  // Comment Menu===============================
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
+  const handleMenuOpen = (event, commentId) => {
+    setAnchorEl(event.currentTarget);
+    setOpenMenuId(commentId);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setOpenMenuId(null);
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    handleMenuClose();
+
+    const confirmDelete = window.confirm("คุณแน่ใจหรือว่าต้องการลบความคิดเห็นนี้?");
+    if (!confirmDelete) {
+      return; // ถ้ายกเลิกการลบ
+    }
+
+    try {
+      const response = await axios.delete(`${API_URL}/comment/${commentId}`);
+      if (response.status === 200) {
+        alert("ลบความคิดเห็นสำเร็จ");
+        window.location.reload();
+      } else {
+        console.error("Failed to delete comment:", response);
+        alert("เกิดข้อผิดพลาดในการลบความคิดเห็น");
+      }
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      alert("ลบความคิดเห็นไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    }
+  };
+
+  const handleEditComment = (commentText, commentId) => {
+    setComment(commentText);  // ดึงข้อความคอมเมนต์มาแสดงในช่องกรอกความคิดเห็น
+    setOpenMenuId(null);  // ปิดเมนู
+    setEditCommentId(commentId);  // ตั้งค่ารหัสความคิดเห็นที่กำลังจะแก้ไข
+
   };
 
   const dateFormat = (createdAt) => {
@@ -109,15 +218,15 @@ function PostUI() {
     setCreatedAt(`${day} ${monthName} ${year} ${hour}:${minute}:${second}`);
   }
 
-
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     if (user) {
       setUserName(user.userName);
       setUserImage(user.userImage);
       setUserId(user.userId);
-      console.log(`User ID: ${user.userId}`);
+      //console.log(`User ID: ${user.userId}`);
     }
+    setTimeout(100);
 
     const getPlace = async () => {
       try {
@@ -134,9 +243,12 @@ function PostUI() {
     getPlace();
 
     const place = JSON.parse(localStorage.getItem("placeData"));
-    console.log("JSON Place data:", place);
+    //console.log("JSON Place data:", place);
     if (place) {
-      setPlaceName(place.place.placeName);
+      if (postEditmode == false) {
+        setPlaceName(place.place.placeName);
+      }
+
       setPlaceImage(place.place.placeImage);
       setUserPlaceId(place.place.userId);
       setUserPlaceName(place.user.userName);
@@ -154,60 +266,90 @@ function PostUI() {
         if (response.status === 200) {
           localStorage.setItem("commentData", JSON.stringify(response.data["data"]));
           setComments(response.data["data"]);
-          console.log("Comments data:", comments);
-        } else {
+          //console.log("Comments data:", comments);
+        }
+        else {
           console.error("Failed to fetch places:", response);
         }
       } catch (error) {
-        console.error("Error fetching places:", error);
+        console.error(`Error fetching places: ${error}`);
       }
     };
+    setTimeout(100);
     getComments();
-  }, [userPlaceId]);
+  }, [userPlaceId, placeImage, comments, createdAt, userPlaceName, userPlaceId]); //userPlaceId, placeImage, comments
 
   const handleCommentChange = (e) => {
     setComment(e.target.value);
   };
 
   const handleCommentSubmit = async (e) => {
-    console.log(userId, placeId, comment);
-    //Validate Register Button
     e.preventDefault();
-    if (userId == '') {
+
+    if (userId === '') {
       alert("กรุณาเข้าสู่ระบบก่อนแสดงความคิดเห็น");
-    } else if (comment.trim().length == 0) {
+    } else if (comment.trim().length === 0) {
       alert("กรุณากรอกความคิดเห็น");
     } else {
-      //ส่งข้อมูลไปให้ API บันทึงลง DB แล้ว redirect ไปหน้า Login
       const formData = new FormData();
-
       formData.append("userId", userId);
       formData.append("placeId", placeId);
       formData.append("commentText", comment);
 
       try {
-        const response = await axios.post(
-          `${API_URL}/comment/`,
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
+        if (editCommentId) {
+          // ถ้ามีการแก้ไขความคิดเห็น
+          formData.append("commentId", editCommentId);
+          const response = await axios.put(
+            `${API_URL}/comment/${editCommentId}`,
+            formData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          );
+          if (response.status === 200) {
+            alert("แก้ไขความคิดเห็นสำเร็จ");
+            setComment('');  // ล้างช่องกรอกความคิดเห็น
+            setEditCommentId(null);  // รีเซ็ตการแก้ไข
+            window.location.reload();
+          } else {
+            alert("แก้ไขความคิดเห็นไม่สำเร็จ");
           }
-        );
-        if (response.status === 201) {
-          alert("แสดงความเห็นสำเร็จ");
-          window.location.reload();
         } else {
-          console.log("Response:", response);
-          console.log("Response:", response.status);
-          alert("แสดงความเห็นไม่สําเร็จ กรุณาลองใหม่อีกครั้ง");
+          // การเพิ่มความคิดเห็นใหม่
+          const response = await axios.post(
+            `${API_URL}/comment/`,
+            formData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          );
+          if (response.status === 201) {
+            alert("แสดงความคิดเห็นสำเร็จ");
+
+            window.location.reload();
+          } else {
+            alert("แสดงความคิดเห็นไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+          }
         }
       } catch (error) {
         alert("พบข้อผิดพลาด", error);
       }
     }
   };
+
+  const handleClose = (e) => {
+    setPostEditmode(false); // ปิดโหมดแก้ไข
+    setNewPlaceImage(null); // ล้างรูปภาพใหม่
+    setUserPlaceId(null); // รีเซ็ต userPlaceId
+    setPlaceName(''); // รีเซ็ตชื่อสถานที่
+    setNewPlaceName(''); // รีเซ็ตชื่อสถานที่ใหม่
+    navigate(-1);
+  }
 
   return (
     <>
@@ -320,7 +462,7 @@ function PostUI() {
         >
           {/* Left Box */}
           <Box
-            onClick={handleBoxClick}
+            onClick={handleImageBoxClick}
             sx={{
               marginTop: -2.5,
               marginLeft: -35,
@@ -335,17 +477,40 @@ function PostUI() {
               textAlign: "center",
               cursor: 'pointer',
               overflow: 'hidden',
+              position: 'relative'  // << สำคัญ! เพื่อวางปุ่มขวาบน
             }}
-
           >
             <input
               type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
               ref={fileInputRef}
+              style={{ display: "none" }}
+              accept="image/*"
               onChange={handleSelectFileChange}
             />
-            {/* รูป */}
+
+            {/* ถ้ามี newPlaceImage แสดงปุ่ม Reset */}
+            {newPlaceImage && (
+              <IconButton
+                sx={{
+                  position: 'absolute',
+                  top: 10,
+                  right: 10,
+                  zIndex: 1,
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 1)',
+                  },
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();  // ไม่ให้กล่องเปิดไฟล์
+                  setNewPlaceImage(null);
+                  fileInputRef.current.value = null;
+                }}
+              >
+                <RestartAltIcon color="error" />
+              </IconButton>
+            )}
+
             {newPlaceImage ? (
               <img
                 src={URL.createObjectURL(fileInputRef.current.files[0])}
@@ -368,8 +533,11 @@ function PostUI() {
                   borderRadius: '20px',
                 }}
               />
-            ) : (<Typography sx={{ fontSize: 300, color: '#ccc' }}>+</Typography>)}
+            ) : (
+              <Typography sx={{ fontSize: 300, color: '#ccc' }}>+</Typography>
+            )}
           </Box>
+
         </Box>
       </Box>
 
@@ -387,14 +555,42 @@ function PostUI() {
           p: 3,
         }}
       >
-        <Box display="flex" justifyContent="flex-end">
-          <Typography
-            variant="h5"
-            sx={{ cursor: 'pointer', fontWeight: 'bold' }}
-            onClick={() => navigate(-1)}
-          >
-            X
-          </Typography>
+        {/* Post Menu============================== */}
+        <Box display="flex" justifyContent="space-between" flexDirection="row">
+          <Box display="flex" sx={{ ml: 60 }}>
+            {userId == userPlaceId ? <IconButton onClick={(e) => handlePostClick(e, placeId)} size="small">
+              <MoreHorizOutlinedIcon />
+            </IconButton> : null}
+            <Menu
+              anchorEl={anchorPost}
+              open={openMenu1Id === placeId}
+              onClose={handlePostClose}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "right",
+              }}
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+            >
+              <MenuItem onClick={() => handleEditPost(placeId, placeImage, placeName)}>แก้ไข</MenuItem>
+              <MenuItem onClick={() => handleDeletePost(placeId)}>ลบ</MenuItem>
+            </Menu>
+          </Box>
+
+          <Box display="flex" >
+            <Typography
+              variant="h5"
+              sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+              onClick={(e) => {
+                handleClose(e);
+              }}
+
+            >
+              X
+            </Typography>
+          </Box>
         </Box>
 
 
@@ -412,9 +608,9 @@ function PostUI() {
         </Box>
 
         {/* ชื่อสถานที่ */}
-        <Typography fontWeight="bold" fontSize={20} mb={2}>
-          {placeName}
-        </Typography>
+        {postEditmode ? <TextField value={newPlaceName} onChange={(e) => setNewPlaceName(e.target.value)} fontWeight="bold" fontSize={20} mb={2}>
+        </TextField> : <Typography fontWeight="bold" fontSize={20} mb={2}>
+          {placeName}</Typography>}
 
         {/* ความคิดเห็น */}
         <Box>
@@ -432,24 +628,65 @@ function PostUI() {
             }}
           >
             {comments.map((item) => (
-              <Box key={item.commentId} display="flex" alignItems="center" mb={1}>
+              <Box
+                key={item.commentId}
+                width="100%"
+                display="flex"
+                alignItems="flex-start"
+                flexDirection="row"
+                mb={1}
+              >
+                {/* รูปผู้ใช้ */}
                 <img
                   src={item.user.userImage}
                   alt="icon"
-                  style={{ width: 30, height: 30, borderRadius: '50%' }}
+                  style={{ width: 50, height: 50, borderRadius: '50%' }}
                 />
-                <Box ml={1}>
-                  <Typography fontWeight="bold" fontSize={14}>
-                    {item.user.userName}
-                  </Typography>
+
+                {/* กล่องฝั่งขวา */}
+                <Box ml={1} flex={1}>
+                  {/* แถวบน: ชื่อ + ปุ่ม 3 จุด */}
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    width="100%"
+                  >
+                    <Typography fontWeight="bold" fontSize={14}>
+                      {item.user.userName}
+                    </Typography>
+
+                    {userId == item.userId ? <IconButton onClick={(e) => handleMenuOpen(e, item.commentId)} size="small">
+                      <MoreVertIcon fontSize="small" />
+                    </IconButton> : null}
+                    <Menu
+                      anchorEl={anchorEl}
+                      open={openMenuId === item.commentId}
+                      onClose={handleMenuClose}
+                      anchorOrigin={{
+                        vertical: "bottom",
+                        horizontal: "right",
+                      }}
+                      transformOrigin={{
+                        vertical: "top",
+                        horizontal: "right",
+                      }}
+                    >
+                      <MenuItem onClick={() => handleEditComment(item.commentText, item.commentId)}>แก้ไข</MenuItem>
+                      <MenuItem onClick={() => handleDeleteComment(item.commentId)}>ลบ</MenuItem>
+                    </Menu>
+                  </Box>
+
+                  {/* แถวล่าง: คอมเมนต์ */}
                   <Typography fontSize={14}>
                     {item.commentText}
                   </Typography>
+                  {/* เส้นคั่น */}
+                  <Divider sx={{ my: 1 }} />
                 </Box>
               </Box>
             ))}
           </Box>
-
 
           {/* ปุ่มเข้าสู่ระบบ */}
           {
@@ -465,8 +702,11 @@ function PostUI() {
                   mt: 2,
                 }}
               >
-                <Typography variant="h6" mb={2}>แสดงความคิดเห็น</Typography>
-
+                {editCommentId ?
+                  <Typography variant="h6" mb={2}>บันทึกความคิดเห็น</Typography>
+                  :
+                  <Typography variant="h6" mb={2}>แสดงความคิดเห็น</Typography>
+                }
                 {/* กล่องแสดงความคิดเห็น */}
                 <TextField
                   fullWidth
@@ -479,14 +719,39 @@ function PostUI() {
                   sx={{ mb: 2 }}
                 />
 
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleCommentSubmit}
-                  disabled={!comment.trim()}
-                >
-                  ส่งความคิดเห็น
-                </Button>
+                <Box display="flex" gap={2}>
+                  {/* ปุ่มส่งความคิดเห็น */}
+                  {editCommentId ?
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handleCommentSubmit}
+                      disabled={!comment.trim()}
+                    >แก้ไขความคิดเห็น</Button>
+                    :
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handleCommentSubmit}
+                      disabled={!comment.trim()}
+                    >
+                      ส่งความคิดเห็น
+                    </Button>}
+                  {/* ปุ่มยกเลิกการแก้ไข */}
+
+                  {editCommentId ?
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={() => {
+                        setComment('');  // ล้างช่องกรอกความคิดเห็น
+                        setEditCommentId(null);  // รีเซ็ตการแก้ไข
+                      }}
+                    >
+                      ยกเลิกการแก้ไข
+                    </Button>
+                    : null}
+                </Box>
               </Box>
               : <Box display="flex" justifyContent="center" flexDirection={"row"}>
                 <Typography
@@ -508,11 +773,38 @@ function PostUI() {
                   เพื่อแสดงความคิดเห็น
                 </Typography>
               </Box>
-
           }
         </Box>
-      </Box>
 
+        {postEditmode ?
+          <Box display="flex" justifyContent="space-between" mt={5} >
+            <Button
+              variant="contained"
+              color="primary"
+              sx={{ width: 150, height: 45, fontSize: '16px', mr: 2 }}
+              onClick={handleEditPostSubmit}
+            >
+              บันทึกการแก้ไข
+            </Button>
+
+            <Button
+              variant="contained"
+              color="warning"
+              sx={{ width: 150, height: 45, fontSize: '16px' }}
+              onClick={() => {
+                setPostEditmode(false); // ปิดโหมดแก้ไข
+                setNewPlaceImage(null); // ล้างรูปภาพใหม่
+                setPlaceName(placeName);
+                setNewPlaceName(placeName);
+
+              }}
+            >
+              ยกเลิก
+            </Button>
+
+          </Box>
+          : null}
+      </Box >
     </>
   );
 }

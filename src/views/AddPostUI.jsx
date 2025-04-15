@@ -69,7 +69,8 @@ function AddPostUI() {
 
       if (response.status === 201) {
         alert("โพสต์ถูกสร้างเรียบร้อยแล้ว");
-        navigate("/post");  // Redirect to posts page or wherever you want
+        console.log("Post created successfully, PlaceId:", response.data.data.placeId);
+        navigate(-1); 
       } else {
         alert("เกิดข้อผิดพลาดในการสร้างโพสต์");
       }
