@@ -14,15 +14,12 @@ import BG from './../assets/BG.png';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
 import axios from 'axios';
-import NotificationPopup from './NotificationPopup';
 
 const API_URL = import.meta.env.VITE_API;
 
 function RegisterUI() {
   const navigate = useNavigate();
   const fileInputRef = useRef(); // <- สำคัญ
-  const [showNotification, setShowNotification] = useState(false);
-
 
   const [userImage, setUserImage] = useState(null);
   const [userName, setUserName] = useState("");

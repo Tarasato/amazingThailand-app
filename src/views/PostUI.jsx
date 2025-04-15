@@ -13,7 +13,7 @@ import {
 import axios from 'axios';
 import { useNavigate, useParams } from "react-router-dom";
 import BG from './../assets/BG.png'; // background
-import logo from '../assets/logo.png';  
+import logo from '../assets/logo.png';
 import Profile from '../assets/profile.png';
 
 const API_URL = import.meta.env.VITE_API;
@@ -23,13 +23,18 @@ function PostUI() {
   const [showNotification, setShowNotification] = useState(false);
 
   const [userName, setUserName] = useState('');
+  const [userPlaceName, setUserPlaceName] = useState('');
   const [userId, setUserId] = useState('');
+  const [userPlaceId, setUserPlaceId] = useState('');
   const [userImage, setUserImage] = useState('');
+  const [userPlaceImage, setUserPlaceImage] = useState('');
   const { placeId } = useParams();
   const [placeName, setPlaceName] = useState('');
   const [placeImage, setPlaceImage] = useState('');
   const [newPlaceImage, setNewPlaceImage] = useState(null);
-  const [placeData, setPlaceData] = useState([]);
+  const [createdAt, setCreatedAt] = useState('');
+  const [comments, setComments] = useState([]);
+  const [comment, setComment] = useState('');
 
   const [AvatarHover, setAvatarHover] = useState(false);
   const [LogoutHover, setLogoutHover] = useState(false);
@@ -37,7 +42,7 @@ function PostUI() {
   const fileInputRef = useRef(null);
 
   const handleBoxClick = () => {
-    if (userId != placeData.userId) {
+    if (userId != userPlaceId) {
       return;
     }
     if (fileInputRef.current) {
@@ -49,6 +54,7 @@ function PostUI() {
     const file = e.target.files[0];
     if (file) {
       setNewPlaceImage(file);
+      console.log('Selected file:', file);
     }
   };
 
@@ -83,6 +89,27 @@ function PostUI() {
     }
   };
 
+  const dateFormat = (createdAt) => {
+
+    const rawDate = createdAt; // วันที่ที่ได้จาก API
+    const date = new Date(rawDate);
+
+    // ดึงเวลาจาก UTC มาเป็นเวลาท้องถิ่น
+    date.setHours(date.getHours());
+
+    const day = date.getDate().toString().padStart(2, '0');
+    const monthName = date.toLocaleString('th-TH', { month: 'long' });
+    const year = date.getFullYear();  // ปี ค.ศ.
+
+    const hour = date.getHours().toString().padStart(2, '0');
+    const minute = date.getMinutes().toString().padStart(2, '0');
+    const second = date.getSeconds().toString().padStart(2, '0');
+
+    // รูปแบบที่ต้องการ
+    setCreatedAt(`${day} ${monthName} ${year} ${hour}:${minute}:${second}`);
+  }
+
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     if (user) {
@@ -96,7 +123,7 @@ function PostUI() {
       try {
         const response = await axios.get(`${API_URL}/place/one/${placeId}`);
         if (response.status === 200) {
-          localStorage.setItem("place", JSON.stringify(response.data["data"]));
+          localStorage.setItem("placeData", JSON.stringify(response.data["data"]));
         } else {
           console.error("Failed to fetch places:", response);
         }
@@ -104,18 +131,83 @@ function PostUI() {
         console.error("Error fetching places:", error);
       }
     };
-
     getPlace();
 
-    const place = JSON.parse(localStorage.getItem("place"));
+    const place = JSON.parse(localStorage.getItem("placeData"));
+    console.log("JSON Place data:", place);
     if (place) {
-      setPlaceName(place.placeName);
-      setPlaceImage(place.placeImage);
-      setPlaceData(place);
-
-      console.log(`User Place ID: ${place.userId}`);
+      setPlaceName(place.place.placeName);
+      setPlaceImage(place.place.placeImage);
+      setUserPlaceId(place.place.userId);
+      setUserPlaceName(place.user.userName);
+      setUserPlaceImage(place.user.userImage);
+      dateFormat(place.place.createdAt);
+      console.log(`CreateAt: ${createdAt}`);
+      console.log(`User Place Name: ${userPlaceName}`);
+      console.log(`Place ID: ${place.place.placeId}`);
+      console.log(`User Place ID: ${userPlaceId}`);
     }
-  }, []);
+
+    const getComments = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/comment/${placeId}`);
+        if (response.status === 200) {
+          localStorage.setItem("commentData", JSON.stringify(response.data["data"]));
+          setComments(response.data["data"]);
+          console.log("Comments data:", comments);
+        } else {
+          console.error("Failed to fetch places:", response);
+        }
+      } catch (error) {
+        console.error("Error fetching places:", error);
+      }
+    };
+    getComments();
+  }, [userPlaceId]);
+
+  const handleCommentChange = (e) => {
+    setComment(e.target.value);
+  };
+
+  const handleCommentSubmit = async (e) => {
+    console.log(userId, placeId, comment);
+    //Validate Register Button
+    e.preventDefault();
+    if (userId == '') {
+      alert("กรุณาเข้าสู่ระบบก่อนแสดงความคิดเห็น");
+    } else if (comment.trim().length == 0) {
+      alert("กรุณากรอกความคิดเห็น");
+    } else {
+      //ส่งข้อมูลไปให้ API บันทึงลง DB แล้ว redirect ไปหน้า Login
+      const formData = new FormData();
+
+      formData.append("userId", userId);
+      formData.append("placeId", placeId);
+      formData.append("commentText", comment);
+
+      try {
+        const response = await axios.post(
+          `${API_URL}/comment/`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+        if (response.status === 201) {
+          alert("แสดงความเห็นสำเร็จ");
+          window.location.reload();
+        } else {
+          console.log("Response:", response);
+          console.log("Response:", response.status);
+          alert("แสดงความเห็นไม่สําเร็จ กรุณาลองใหม่อีกครั้ง");
+        }
+      } catch (error) {
+        alert("พบข้อผิดพลาด", error);
+      }
+    }
+  };
 
   return (
     <>
@@ -228,6 +320,7 @@ function PostUI() {
         >
           {/* Left Box */}
           <Box
+            onClick={handleBoxClick}
             sx={{
               marginTop: -2.5,
               marginLeft: -35,
@@ -253,9 +346,9 @@ function PostUI() {
               onChange={handleSelectFileChange}
             />
             {/* รูป */}
-            {placeImage ? (
+            {newPlaceImage ? (
               <img
-                src={placeImage}
+                src={URL.createObjectURL(fileInputRef.current.files[0])}
                 alt="Selected"
                 style={{
                   width: '100%',
@@ -264,9 +357,18 @@ function PostUI() {
                   borderRadius: '20px',
                 }}
               />
-            ) : (
-              <Typography sx={{ fontSize: 300, color: '#ccc' }}>+</Typography>
-            )}
+            ) : placeImage ? (
+              <img
+                src={placeImage}
+                alt="placeImage"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: '20px',
+                }}
+              />
+            ) : (<Typography sx={{ fontSize: 300, color: '#ccc' }}>+</Typography>)}
           </Box>
         </Box>
       </Box>
@@ -299,13 +401,13 @@ function PostUI() {
         {/* ผู้โพสต์ */}
         <Box display="flex" alignItems="center" gap={2} mb={2}>
           <img
-            src={Profile}
+            src={userPlaceImage ? userPlaceImage : Profile}
             alt="user icon"
             style={{ width: 40, height: 40 }}
           />
           <Box>
-            <Typography fontWeight="bold">คิม สมสุข</Typography>
-            <Typography fontSize={14}>99 มกราคม พ.ศ. 2555</Typography>
+            <Typography fontWeight="bold">{userPlaceName}</Typography>
+            <Typography fontSize={14}>{createdAt}</Typography>
           </Box>
         </Box>
 
@@ -325,38 +427,67 @@ function PostUI() {
               borderRadius: 2,
               p: 1,
               maxHeight: 150,
+              minHeight: 150,
               overflowY: 'auto',
             }}
           >
-            {/* คอมเมนต์ตัวอย่าง */}
-            <Box display="flex" alignItems="center" mb={1}>
-              <img
-                src={Profile}
-                alt="icon"
-                style={{ width: 30, height: 30 }}
-              />
-              <Box ml={1}>
-                <Typography fontWeight="bold" fontSize={14}>สมชาย</Typography>
-                <Typography fontSize={14}>nice</Typography>
+            {comments.map((item) => (
+              <Box key={item.commentId} display="flex" alignItems="center" mb={1}>
+                <img
+                  src={item.user.userImage}
+                  alt="icon"
+                  style={{ width: 30, height: 30, borderRadius: '50%' }}
+                />
+                <Box ml={1}>
+                  <Typography fontWeight="bold" fontSize={14}>
+                    {item.user.userName}
+                  </Typography>
+                  <Typography fontSize={14}>
+                    {item.commentText}
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
-            <Box display="flex" alignItems="center" mb={1}>
-              <img
-                src={Profile}
-                alt="icon"
-                style={{ width: 30, height: 30 }}
-              />
-              <Box ml={1}>
-                <Typography fontWeight="bold" fontSize={14}>สมศรี</Typography>
-                <Typography fontSize={14}>wow</Typography>
-              </Box>
-            </Box>
+            ))}
           </Box>
+
 
           {/* ปุ่มเข้าสู่ระบบ */}
           {
             userName ?
-              null
+              <Box
+                sx={{
+                  width: '100%',
+                  maxWidth: 600,
+                  margin: '0 auto',
+                  p: 2,
+                  border: '1px solid gray',
+                  borderRadius: 2,
+                  mt: 2,
+                }}
+              >
+                <Typography variant="h6" mb={2}>แสดงความคิดเห็น</Typography>
+
+                {/* กล่องแสดงความคิดเห็น */}
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={4}
+                  variant="outlined"
+                  placeholder="พิมพ์ความคิดเห็นของคุณที่นี่..."
+                  value={comment}
+                  onChange={handleCommentChange}
+                  sx={{ mb: 2 }}
+                />
+
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleCommentSubmit}
+                  disabled={!comment.trim()}
+                >
+                  ส่งความคิดเห็น
+                </Button>
+              </Box>
               : <Box display="flex" justifyContent="center" flexDirection={"row"}>
                 <Typography
                   color="#42a5f4"
